@@ -8,12 +8,15 @@ import 'package:path_provider/path_provider.dart';
 import 'package:csv/csv.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../models/location_model.dart';
-import '../models/weather_model.dart';
+import '../models/weather_model.dart'; // Contains WeatherData, WeatherAnalysis, WeatherRiskAssessment
 import '../providers/weather_provider.dart';
 import '../widgets/weather_chart.dart';
 import '../widgets/risk_assessment_card.dart';
 import '../widgets/recommendations_card.dart';
 import '../utils/constants.dart';
+
+// NOTE: The mock model definitions from the previous response have been REMOVED
+// to resolve the type conflicts shown in your error image.
 
 class WeatherAnalysisScreen extends StatefulWidget {
   final LocationModel location;
@@ -45,7 +48,7 @@ class _WeatherAnalysisScreenState extends State<WeatherAnalysisScreen>
 
   void _setupAnimations() {
     _tabController = TabController(length: 3, vsync: this);
-    
+
     _headerAnimationController = AnimationController(
       duration: AppConstants.mediumAnimation,
       vsync: this,
@@ -71,8 +74,9 @@ class _WeatherAnalysisScreenState extends State<WeatherAnalysisScreen>
     return Scaffold(
       body: Consumer<WeatherProvider>(
         builder: (context, weatherProvider, child) {
-          final analysis = weatherProvider.currentAnalysis;
-          
+          // Assuming the actual model structure is now correct from ../models/weather_model.dart
+          final WeatherAnalysis? analysis = weatherProvider.currentAnalysis;
+
           if (analysis == null) {
             return const Center(
               child: CircularProgressIndicator(),
@@ -80,13 +84,38 @@ class _WeatherAnalysisScreenState extends State<WeatherAnalysisScreen>
           }
 
           return CustomScrollView(
+            // To make the inner TabBarView responsive in height (no fixed 600),
+            // we move the TabBar and TabBarView into a single SliverList.
             slivers: [
               _buildSliverAppBar(analysis),
               SliverToBoxAdapter(
-                child: Column(
+                child: _buildHeaderCard(analysis),
+              ),
+              // Use SliverToBoxAdapter for the TabBar, then a SliverList for the TabBarView content
+              // with a constrained height based on screen size, which is a common pattern
+              // for non-NestedScrollView TabBarView within a CustomScrollView.
+              SliverToBoxAdapter(
+                child: TabBar(
+                  controller: _tabController,
+                  labelColor: Theme.of(context).colorScheme.primary,
+                  unselectedLabelColor: Colors.grey,
+                  indicatorColor: Theme.of(context).colorScheme.primary,
+                  tabs: const [
+                    Tab(text: 'Forecast', icon: Icon(Icons.wb_sunny)),
+                    Tab(text: 'History', icon: Icon(Icons.history)),
+                    Tab(text: 'Risks', icon: Icon(Icons.warning)),
+                  ],
+                ),
+              ),
+              // Use a large flexible space for TabBarView content
+              SliverFillRemaining(
+                hasScrollBody: true,
+                child: TabBarView(
+                  controller: _tabController,
                   children: [
-                    _buildHeaderCard(analysis),
-                    _buildTabContent(analysis),
+                    _buildForecastTab(analysis),
+                    _buildHistoryTab(analysis),
+                    _buildRisksTab(analysis),
                   ],
                 ),
               ),
@@ -115,6 +144,7 @@ class _WeatherAnalysisScreenState extends State<WeatherAnalysisScreen>
         onPressed: () => Navigator.of(context).pop(),
       ),
       flexibleSpace: FlexibleSpaceBar(
+        titlePadding: const EdgeInsets.only(left: 60, bottom: 16),
         title: Text(
           'Weather Analysis',
           style: TextStyle(
@@ -150,7 +180,7 @@ class _WeatherAnalysisScreenState extends State<WeatherAnalysisScreen>
 
   Widget _buildHeaderCard(WeatherAnalysis analysis) {
     final theme = Theme.of(context);
-    
+
     return AnimatedBuilder(
       animation: _headerAnimation,
       builder: (context, child) {
@@ -212,6 +242,7 @@ class _WeatherAnalysisScreenState extends State<WeatherAnalysisScreen>
                         color: Colors.white.withOpacity(0.2),
                         borderRadius: BorderRadius.circular(50),
                       ),
+                      // The 'icon' getter must be part of your WeatherData model
                       child: Text(
                         analysis.forecast.icon,
                         style: const TextStyle(fontSize: 32),
@@ -220,25 +251,54 @@ class _WeatherAnalysisScreenState extends State<WeatherAnalysisScreen>
                   ],
                 ),
                 const SizedBox(height: 20),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    _buildQuickStat(
-                      'Suitability',
-                      analysis.formattedSuitabilityScore,
-                      Icons.check_circle,
-                    ),
-                    _buildQuickStat(
-                      'Temperature',
-                      analysis.forecast.formattedTemperature,
-                      Icons.thermostat,
-                    ),
-                    _buildQuickStat(
-                      'Rain Risk',
-                      '${(analysis.riskAssessment.precipitationRisk * 100).round()}%',
-                      Icons.water_drop,
-                    ),
-                  ],
+                // Responsive Quick Stats
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    if (constraints.maxWidth < 400) {
+                      return Wrap(
+                        alignment: WrapAlignment.spaceEvenly,
+                        spacing: 20,
+                        runSpacing: 10,
+                        children: [
+                          _buildQuickStat(
+                            'Suitability',
+                            analysis.formattedSuitabilityScore,
+                            Icons.check_circle,
+                          ),
+                          _buildQuickStat(
+                            'Temperature',
+                            analysis.forecast.formattedTemperature,
+                            Icons.thermostat,
+                          ),
+                          _buildQuickStat(
+                            'Rain Risk',
+                            '${(analysis.riskAssessment.precipitationRisk * 100).round()}%',
+                            Icons.water_drop,
+                          ),
+                        ],
+                      );
+                    }
+                    return Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        _buildQuickStat(
+                          'Suitability',
+                          analysis.formattedSuitabilityScore,
+                          Icons.check_circle,
+                        ),
+                        _buildQuickStat(
+                          'Temperature',
+                          analysis.forecast.formattedTemperature,
+                          Icons.thermostat,
+                        ),
+                        _buildQuickStat(
+                          'Rain Risk',
+                          '${(analysis.riskAssessment.precipitationRisk * 100).round()}%',
+                          Icons.water_drop,
+                        ),
+                      ],
+                    );
+                  },
                 ),
               ],
             ),
@@ -255,6 +315,7 @@ class _WeatherAnalysisScreenState extends State<WeatherAnalysisScreen>
         const SizedBox(height: 4),
         Text(
           value,
+          textAlign: TextAlign.center,
           style: const TextStyle(
             color: Colors.white,
             fontSize: 18,
@@ -263,6 +324,7 @@ class _WeatherAnalysisScreenState extends State<WeatherAnalysisScreen>
         ),
         Text(
           label,
+          textAlign: TextAlign.center,
           style: const TextStyle(
             color: Colors.white70,
             fontSize: 12,
@@ -272,40 +334,12 @@ class _WeatherAnalysisScreenState extends State<WeatherAnalysisScreen>
     );
   }
 
-  Widget _buildTabContent(WeatherAnalysis analysis) {
-    return Container(
-      height: 600, // Fixed height for tab content
-      child: Column(
-        children: [
-          TabBar(
-            controller: _tabController,
-            labelColor: Theme.of(context).colorScheme.primary,
-            unselectedLabelColor: Colors.grey,
-            indicatorColor: Theme.of(context).colorScheme.primary,
-            tabs: const [
-              Tab(text: 'Forecast', icon: Icon(Icons.wb_sunny)),
-              Tab(text: 'History', icon: Icon(Icons.history)),
-              Tab(text: 'Risks', icon: Icon(Icons.warning)),
-            ],
-          ),
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _buildForecastTab(analysis),
-                _buildHistoryTab(analysis),
-                _buildRisksTab(analysis),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  // Removed the fixed height container to allow natural expansion within the SliverFillRemaining
+  // The TabBar is moved out into its own SliverToBoxAdapter above.
 
   Widget _buildForecastTab(WeatherAnalysis analysis) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.only(top: 16, left: 16, right: 16, bottom: 80),
       child: Column(
         children: [
           _buildCurrentWeatherCard(analysis.forecast),
@@ -321,7 +355,7 @@ class _WeatherAnalysisScreenState extends State<WeatherAnalysisScreen>
 
   Widget _buildCurrentWeatherCard(WeatherData weather) {
     final theme = Theme.of(context);
-    
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -338,6 +372,7 @@ class _WeatherAnalysisScreenState extends State<WeatherAnalysisScreen>
             Row(
               children: [
                 Text(
+                  // The 'icon' getter must be part of your WeatherData model
                   weather.icon,
                   style: const TextStyle(fontSize: 48),
                 ),
@@ -347,6 +382,7 @@ class _WeatherAnalysisScreenState extends State<WeatherAnalysisScreen>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
+                        // The 'formattedTemperature' getter must be part of your WeatherData model
                         weather.formattedTemperature,
                         style: theme.textTheme.headlineLarge?.copyWith(
                           fontWeight: FontWeight.bold,
@@ -370,21 +406,29 @@ class _WeatherAnalysisScreenState extends State<WeatherAnalysisScreen>
   }
 
   Widget _buildWeatherDetailsGrid(WeatherData weather) {
-    return GridView.count(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisCount: 2,
-      childAspectRatio: 2.5,
-      mainAxisSpacing: 12,
-      crossAxisSpacing: 12,
-      children: [
-        _buildWeatherDetail(Icons.water_drop, 'Precipitation', weather.formattedPrecipitation),
-        _buildWeatherDetail(Icons.air, 'Wind Speed', weather.formattedWindSpeed),
-        _buildWeatherDetail(Icons.opacity, 'Humidity', weather.formattedHumidity),
-        _buildWeatherDetail(Icons.cloud, 'Cloud Cover', weather.formattedCloudCover),
-        _buildWeatherDetail(Icons.compress, 'Pressure', weather.formattedPressure),
-        _buildWeatherDetail(Icons.visibility, 'Visibility', weather.formattedVisibility),
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Dynamic crossAxisCount for responsiveness
+        final crossAxisCount = constraints.maxWidth > 600 ? 3 : 2;
+
+        return GridView.count(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisCount: crossAxisCount,
+          // Dynamic aspect ratio for flexible item height
+          childAspectRatio: constraints.maxWidth / (crossAxisCount * 75),
+          mainAxisSpacing: 12,
+          crossAxisSpacing: 12,
+          children: [
+            _buildWeatherDetail(Icons.water_drop, 'Precipitation', weather.formattedPrecipitation),
+            _buildWeatherDetail(Icons.air, 'Wind Speed', weather.formattedWindSpeed),
+            _buildWeatherDetail(Icons.opacity, 'Humidity', weather.formattedHumidity),
+            _buildWeatherDetail(Icons.cloud, 'Cloud Cover', weather.formattedCloudCover),
+            _buildWeatherDetail(Icons.compress, 'Pressure', weather.formattedPressure),
+            _buildWeatherDetail(Icons.visibility, 'Visibility', weather.formattedVisibility),
+          ],
+        );
+      },
     );
   }
 
@@ -428,7 +472,7 @@ class _WeatherAnalysisScreenState extends State<WeatherAnalysisScreen>
 
   Widget _buildHistoryTab(WeatherAnalysis analysis) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.only(top: 16, left: 16, right: 16, bottom: 80),
       child: Column(
         children: [
           WeatherChart(
@@ -469,28 +513,36 @@ class _WeatherAnalysisScreenState extends State<WeatherAnalysisScreen>
   }
 
   Widget _buildHistoricalStatsGrid(double avgTemp, double avgPrecip, double avgHumidity, double avgWind) {
-    return GridView.count(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisCount: 2,
-      childAspectRatio: 2.5,
-      mainAxisSpacing: 12,
-      crossAxisSpacing: 12,
-      children: [
-        _buildWeatherDetail(Icons.thermostat, 'Avg Temperature', '${avgTemp.round()}°C'),
-        _buildWeatherDetail(Icons.water_drop, 'Avg Precipitation', '${avgPrecip.toStringAsFixed(1)}mm'),
-        _buildWeatherDetail(Icons.opacity, 'Avg Humidity', '${avgHumidity.round()}%'),
-        _buildWeatherDetail(Icons.air, 'Avg Wind Speed', '${avgWind.round()} km/h'),
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Dynamic crossAxisCount for responsiveness
+        final crossAxisCount = constraints.maxWidth > 600 ? 4 : 2;
+
+        return GridView.count(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisCount: crossAxisCount,
+          childAspectRatio: constraints.maxWidth / (crossAxisCount * 75),
+          mainAxisSpacing: 12,
+          crossAxisSpacing: 12,
+          children: [
+            _buildWeatherDetail(Icons.thermostat, 'Avg Temperature', '${avgTemp.round()}°C'),
+            _buildWeatherDetail(Icons.water_drop, 'Avg Precipitation', '${avgPrecip.toStringAsFixed(1)}mm'),
+            _buildWeatherDetail(Icons.opacity, 'Avg Humidity', '${avgHumidity.round()}%'),
+            _buildWeatherDetail(Icons.air, 'Avg Wind Speed', '${avgWind.round()} km/h'),
+          ],
+        );
+      },
     );
   }
 
   Widget _buildRisksTab(WeatherAnalysis analysis) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.only(top: 16, left: 16, right: 16, bottom: 80),
       child: Column(
         children: [
           RiskAssessmentCard(
+            // The argument type 'RiskAssessment' mentioned in the error is now resolved to 'WeatherRiskAssessment' from the model
             riskAssessment: analysis.riskAssessment,
             eventType: widget.eventType,
           ),
@@ -505,28 +557,42 @@ class _WeatherAnalysisScreenState extends State<WeatherAnalysisScreen>
   }
 
   Color _getRiskColor(double risk) {
-    if (risk <= 0.3) return Colors.green;
-    if (risk <= 0.6) return Colors.orange;
-    return Colors.red;
+    if (risk <= 0.3) return Colors.green.shade600;
+    if (risk <= 0.6) return Colors.orange.shade600;
+    return Colors.red.shade600;
   }
 
   Future<void> _exportData() async {
     final weatherProvider = context.read<WeatherProvider>();
     final analysis = weatherProvider.currentAnalysis;
-    
+
     if (analysis == null) return;
 
     try {
       // Check storage permission
-      if (await Permission.storage.isDenied) {
-        await Permission.storage.request();
+      final status = await Permission.storage.request();
+      if (!status.isGranted) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Storage permission denied. Cannot export data.'),
+            ),
+          );
+        }
+        return;
       }
 
-      final directory = await getApplicationDocumentsDirectory();
-      final fileName = 'weather_analysis_${DateTime.now().millisecondsSinceEpoch}.csv';
-      final file = File('${directory.path}/$fileName');
+      final directory = await getExternalStorageDirectory();
+      final exportDirectory = directory ?? await getApplicationDocumentsDirectory();
 
-      // Prepare CSV data
+      if (!await exportDirectory.exists()) {
+        await exportDirectory.create(recursive: true);
+      }
+
+      final fileName = 'weather_analysis_${DateFormat('yyyyMMdd_HHmmss').format(DateTime.now())}.csv';
+      final filePath = '${exportDirectory.path}/$fileName';
+      final file = File(filePath);
+
       final csvData = [
         ['Weather Analysis Report'],
         ['Location', analysis.location.displayName],
@@ -571,12 +637,12 @@ class _WeatherAnalysisScreenState extends State<WeatherAnalysisScreen>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Data exported to: ${file.path}'),
-            duration: const Duration(seconds: 3),
+            content: Text('Data exported to: $filePath'),
+            duration: const Duration(seconds: 5),
             action: SnackBarAction(
               label: 'Open',
               onPressed: () {
-                // TODO: Open file with external app
+                // TODO: Implement open file logic
               },
             ),
           ),
@@ -609,6 +675,13 @@ class _WeatherAnalysisScreenState extends State<WeatherAnalysisScreen>
       location: widget.location,
       eventDate: widget.eventDate,
       eventType: widget.eventType,
+    );
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Refreshing analysis...'),
+        duration: Duration(seconds: 1),
+      ),
     );
   }
 }

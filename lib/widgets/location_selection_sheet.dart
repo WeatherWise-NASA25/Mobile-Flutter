@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:weatherwise/screens/weather_analysis_screen.dart';
 import '../models/location_model.dart';
 import '../models/weather_model.dart';
 import '../providers/weather_provider.dart';
-import '../screens/weather_analysis_screen.dart' show WeatherAnalysisScreen;
 import '../utils/constants.dart';
+import 'package:geocoding/geocoding.dart';
 
 class LocationSelectionSheet extends StatefulWidget {
   final LocationModel location;
@@ -30,12 +31,15 @@ class _LocationSelectionSheetState extends State<LocationSelectionSheet>
   TimeOfDay? _selectedTime;
   String? _selectedEventType;
   bool _isAnalyzing = false;
+  bool _isLoadingLocationName = false;
+  String _locationDisplayName = '';
 
   @override
   void initState() {
     super.initState();
     _setupAnimations();
     _setDefaultDateTime();
+    _loadLocationName();
   }
 
   void _setupAnimations() {
@@ -69,7 +73,66 @@ class _LocationSelectionSheetState extends State<LocationSelectionSheet>
   void _setDefaultDateTime() {
     final now = DateTime.now();
     _selectedDate = now.add(const Duration(days: 1));
-    _selectedTime = TimeOfDay(hour: 14, minute: 0); // 2 PM default
+    _selectedTime = const TimeOfDay(hour: 14, minute: 0);
+  }
+
+  void _loadLocationName() async {
+    if (widget.location.name != 'Custom Location') {
+      setState(() {
+        _locationDisplayName = widget.location.displayName;
+      });
+      return;
+    }
+
+    setState(() {
+      _isLoadingLocationName = true;
+      _locationDisplayName = 'Loading location...';
+    });
+
+    try {
+      List<Placemark> placemarks = await placemarkFromCoordinates(
+        widget.location.latitude,
+        widget.location.longitude,
+      );
+
+      if (placemarks.isNotEmpty) {
+        final placemark = placemarks.first;
+        final locationName = _formatLocationName(placemark);
+
+        setState(() {
+          _locationDisplayName = locationName;
+          _isLoadingLocationName = false;
+        });
+      } else {
+        setState(() {
+          _locationDisplayName = 'Unknown Location';
+          _isLoadingLocationName = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _locationDisplayName = 'Location (${widget.location.coordinates})';
+        _isLoadingLocationName = false;
+      });
+    }
+  }
+
+  String _formatLocationName(Placemark placemark) {
+    List<String> parts = [];
+
+    if (placemark.locality?.isNotEmpty ?? false) {
+      parts.add(placemark.locality!);
+    } else if (placemark.subAdministrativeArea?.isNotEmpty ?? false) {
+      parts.add(placemark.subAdministrativeArea!);
+    } else if (placemark.administrativeArea?.isNotEmpty ?? false) {
+      parts.add(placemark.administrativeArea!);
+    }
+
+    if (placemark.country?.isNotEmpty ?? false) {
+      parts.add(placemark.country!);
+    }
+
+    return parts.isNotEmpty ? parts.join(', ') : 'Unknown Location';
   }
 
   Future<void> _selectDate() async {
@@ -142,8 +205,9 @@ class _LocationSelectionSheetState extends State<LocationSelectionSheet>
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 20),
-            Expanded(
+            Flexible(
               child: GridView.builder(
+                shrinkWrap: true,
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
                   childAspectRatio: 2.5,
@@ -214,8 +278,8 @@ class _LocationSelectionSheetState extends State<LocationSelectionSheet>
   }
 
   Future<void> _analyzeWeather() async {
-    if (_selectedDate == null || 
-        _selectedTime == null || 
+    if (_selectedDate == null ||
+        _selectedTime == null ||
         _selectedEventType == null) {
       _showValidationError();
       return;
@@ -228,7 +292,6 @@ class _LocationSelectionSheetState extends State<LocationSelectionSheet>
     HapticFeedback.lightImpact();
 
     try {
-      // Combine date and time
       final eventDateTime = DateTime(
         _selectedDate!.year,
         _selectedDate!.month,
@@ -238,9 +301,16 @@ class _LocationSelectionSheetState extends State<LocationSelectionSheet>
       );
 
       final weatherProvider = context.read<WeatherProvider>();
-      
+
+      final updatedLocation = widget.location.copyWith(
+        name: _locationDisplayName.split(',').first,
+        country: _locationDisplayName.contains(',')
+            ? _locationDisplayName.split(',').last.trim()
+            : 'Unknown',
+      );
+
       await weatherProvider.analyzeWeatherForEvent(
-        location: widget.location,
+        location: updatedLocation,
         eventDate: eventDateTime,
         eventType: _selectedEventType!,
       );
@@ -250,10 +320,10 @@ class _LocationSelectionSheetState extends State<LocationSelectionSheet>
           PageRouteBuilder(
             pageBuilder: (context, animation, secondaryAnimation) =>
                 WeatherAnalysisScreen(
-              location: widget.location,
-              eventDate: eventDateTime,
-              eventType: _selectedEventType!,
-            ),
+                  location: updatedLocation,
+                  eventDate: eventDateTime,
+                  eventType: _selectedEventType!,
+                ),
             transitionsBuilder: (context, animation, secondaryAnimation, child) {
               return SlideTransition(
                 position: Tween<Offset>(
@@ -323,7 +393,9 @@ class _LocationSelectionSheetState extends State<LocationSelectionSheet>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final size = MediaQuery.of(context).size;
+    final mediaQuery = MediaQuery.of(context);
+    final screenHeight = mediaQuery.size.height;
+    final screenWidth = mediaQuery.size.width;
 
     return SlideTransition(
       position: _slideAnimation,
@@ -365,33 +437,34 @@ class _LocationSelectionSheetState extends State<LocationSelectionSheet>
                   Expanded(
                     child: SingleChildScrollView(
                       controller: scrollController,
-                      padding: const EdgeInsets.all(20),
+                      padding: EdgeInsets.all(screenWidth * 0.05), // Responsive padding
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           // Location Info
-                          _buildLocationHeader(),
-                          const SizedBox(height: 24),
+                          _buildLocationHeader(screenWidth),
+                          SizedBox(height: screenHeight * 0.03),
 
                           // Event Planning Section
                           Text(
                             'Plan Your Event',
                             style: theme.textTheme.headlineMedium?.copyWith(
                               fontWeight: FontWeight.bold,
+                              fontSize: screenWidth * 0.06, // Responsive font
                             ),
                           ),
-                          const SizedBox(height: 16),
+                          SizedBox(height: screenHeight * 0.02),
 
-                          // Date Selection
-                          _buildDateTimeSelectors(),
-                          const SizedBox(height: 16),
+                          // Date and Time Selection - FIXED RESPONSIVE
+                          _buildDateTimeSelectors(screenWidth, screenHeight),
+                          SizedBox(height: screenHeight * 0.02),
 
                           // Event Type Selection
-                          _buildEventTypeSelector(),
-                          const SizedBox(height: 32),
+                          _buildEventTypeSelector(screenWidth, screenHeight),
+                          SizedBox(height: screenHeight * 0.04),
 
                           // Analyze Button
-                          _buildAnalyzeButton(),
+                          _buildAnalyzeButton(screenWidth, screenHeight),
                         ],
                       ),
                     ),
@@ -405,11 +478,12 @@ class _LocationSelectionSheetState extends State<LocationSelectionSheet>
     );
   }
 
-  Widget _buildLocationHeader() {
+  Widget _buildLocationHeader(double screenWidth) {
     final theme = Theme.of(context);
-    
+
     return Container(
-      padding: const EdgeInsets.all(16),
+      width: double.infinity,
+      padding: EdgeInsets.all(screenWidth * 0.04),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
@@ -427,24 +501,51 @@ class _LocationSelectionSheetState extends State<LocationSelectionSheet>
               Icon(
                 Icons.location_on,
                 color: theme.colorScheme.primary,
-                size: 24,
+                size: screenWidth * 0.06,
               ),
-              const SizedBox(width: 8),
+              SizedBox(width: screenWidth * 0.02),
               Expanded(
-                child: Text(
-                  widget.location.displayName,
+                child: _isLoadingLocationName
+                    ? Row(
+                  children: [
+                    SizedBox(
+                      width: screenWidth * 0.04,
+                      height: screenWidth * 0.04,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          theme.colorScheme.primary,
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: screenWidth * 0.02),
+                    Flexible(
+                      child: Text(
+                        'Loading location...',
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          fontSize: screenWidth * 0.045,
+                        ),
+                      ),
+                    ),
+                  ],
+                )
+                    : Text(
+                  _locationDisplayName,
                   style: theme.textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
+                    fontSize: screenWidth * 0.045,
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: screenWidth * 0.02),
           Text(
             'Coordinates: ${widget.location.coordinates}',
             style: theme.textTheme.bodyMedium?.copyWith(
               color: Colors.grey[600],
+              fontSize: screenWidth * 0.035,
             ),
           ),
           if (widget.location.timezone != null)
@@ -452,6 +553,7 @@ class _LocationSelectionSheetState extends State<LocationSelectionSheet>
               'Timezone: ${widget.location.timezone}',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: Colors.grey[600],
+                fontSize: screenWidth * 0.035,
               ),
             ),
         ],
@@ -459,9 +561,8 @@ class _LocationSelectionSheetState extends State<LocationSelectionSheet>
     );
   }
 
-  Widget _buildDateTimeSelectors() {
-    final theme = Theme.of(context);
-    
+  // FIXED: Responsive Date and Time selectors with same height
+  Widget _buildDateTimeSelectors(double screenWidth, double screenHeight) {
     return Row(
       children: [
         Expanded(
@@ -470,49 +571,59 @@ class _LocationSelectionSheetState extends State<LocationSelectionSheet>
             title: 'Date',
             subtitle: _selectedDate?.formattedDate ?? 'Select date',
             onTap: _selectDate,
+            screenWidth: screenWidth,
+            screenHeight: screenHeight,
           ),
         ),
-        const SizedBox(width: 12),
+        SizedBox(width: screenWidth * 0.03),
         Expanded(
           child: _buildSelectorCard(
             icon: Icons.access_time,
             title: 'Time',
             subtitle: _selectedTime?.format(context) ?? 'Select time',
             onTap: _selectTime,
+            screenWidth: screenWidth,
+            screenHeight: screenHeight,
           ),
         ),
       ],
     );
   }
 
-  Widget _buildEventTypeSelector() {
+  Widget _buildEventTypeSelector(double screenWidth, double screenHeight) {
     return _buildSelectorCard(
       icon: AppConstants.eventIcons[_selectedEventType] ?? Icons.event,
       title: 'Event Type',
       subtitle: _selectedEventType ?? 'Select event type',
       onTap: _selectEventType,
       fullWidth: true,
+      screenWidth: screenWidth,
+      screenHeight: screenHeight,
     );
   }
 
+  // FIXED: Responsive selector card with consistent height
   Widget _buildSelectorCard({
     required IconData icon,
     required String title,
     required String subtitle,
     required VoidCallback onTap,
     bool fullWidth = false,
+    required double screenWidth,
+    required double screenHeight,
   }) {
     final theme = Theme.of(context);
-    final isSelected = subtitle != 'Select date' && 
-                      subtitle != 'Select time' && 
-                      subtitle != 'Select event type';
-    
+    final isSelected = subtitle != 'Select date' &&
+        subtitle != 'Select time' &&
+        subtitle != 'Select event type';
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(16),
+        height: screenHeight * 0.1, // FIXED: Consistent height
+        padding: EdgeInsets.all(screenWidth * 0.04),
         decoration: BoxDecoration(
-          color: isSelected 
+          color: isSelected
               ? theme.colorScheme.primaryContainer.withOpacity(0.3)
               : theme.cardColor,
           borderRadius: BorderRadius.circular(12),
@@ -527,20 +638,22 @@ class _LocationSelectionSheetState extends State<LocationSelectionSheet>
           children: [
             Icon(
               icon,
-              color: isSelected 
+              color: isSelected
                   ? theme.colorScheme.primary
                   : Colors.grey[600],
-              size: 24,
+              size: screenWidth * 0.06,
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: screenWidth * 0.03),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center, // FIXED: Center content
                 children: [
                   Text(
                     title,
                     style: theme.textTheme.labelLarge?.copyWith(
                       color: Colors.grey[600],
+                      fontSize: screenWidth * 0.035,
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -548,10 +661,13 @@ class _LocationSelectionSheetState extends State<LocationSelectionSheet>
                     subtitle,
                     style: theme.textTheme.bodyLarge?.copyWith(
                       fontWeight: FontWeight.w500,
+                      fontSize: screenWidth * 0.04,
                       color: isSelected
                           ? theme.colorScheme.primary
                           : theme.textTheme.bodyLarge?.color,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
@@ -559,6 +675,7 @@ class _LocationSelectionSheetState extends State<LocationSelectionSheet>
             Icon(
               Icons.chevron_right,
               color: Colors.grey[400],
+              size: screenWidth * 0.05,
             ),
           ],
         ),
@@ -566,40 +683,41 @@ class _LocationSelectionSheetState extends State<LocationSelectionSheet>
     );
   }
 
-  Widget _buildAnalyzeButton() {
+  Widget _buildAnalyzeButton(double screenWidth, double screenHeight) {
     final theme = Theme.of(context);
-    final canAnalyze = _selectedDate != null && 
-                      _selectedTime != null && 
-                      _selectedEventType != null;
-    
+    final canAnalyze = _selectedDate != null &&
+        _selectedTime != null &&
+        _selectedEventType != null &&
+        !_isLoadingLocationName;
+
     return SizedBox(
       width: double.infinity,
-      height: 56,
+      height: screenHeight * 0.07, // Responsive height
       child: FilledButton.icon(
         onPressed: canAnalyze && !_isAnalyzing ? _analyzeWeather : null,
         icon: _isAnalyzing
             ? SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    theme.colorScheme.onPrimary,
-                  ),
-                ),
-              )
-            : const Icon(Icons.analytics),
+          width: screenWidth * 0.05,
+          height: screenWidth * 0.05,
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            valueColor: AlwaysStoppedAnimation<Color>(
+              theme.colorScheme.onPrimary,
+            ),
+          ),
+        )
+            : Icon(Icons.analytics, size: screenWidth * 0.05),
         label: Text(
-          _isAnalyzing 
+          _isAnalyzing
               ? 'Analyzing Weather...'
               : 'Analyze Event Suitability',
-          style: const TextStyle(
-            fontSize: 16,
+          style: TextStyle(
+            fontSize: screenWidth * 0.04,
             fontWeight: FontWeight.w600,
           ),
         ),
         style: FilledButton.styleFrom(
-          backgroundColor: canAnalyze 
+          backgroundColor: canAnalyze
               ? theme.colorScheme.primary
               : Colors.grey[400],
           shape: RoundedRectangleBorder(
