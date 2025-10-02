@@ -41,6 +41,7 @@ dependencies:
   # Charts and Data Visualization
   fl_chart: ^0.64.0
   syncfusion_flutter_charts: ^23.1.44
+  xml: ^6.3.0  # For parsing NASA XML responses
 
   # Date and Time
   intl: ^0.18.1

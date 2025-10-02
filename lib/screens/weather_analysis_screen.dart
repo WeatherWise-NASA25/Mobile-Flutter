@@ -100,23 +100,23 @@ class _WeatherAnalysisScreenState extends State<WeatherAnalysisScreen>
                         Tab(
                           text: screenWidth > 400 ? 'Forecast' : null,
                           icon: const Icon(Icons.wb_sunny, size: 20),
-                          child: screenWidth <= 400
-                              ? const Icon(Icons.wb_sunny, size: 20)
-                              : null,
+                          // child: screenWidth <= 400
+                          //     ? const Icon(Icons.wb_sunny, size: 20)
+                          //     : null,
                         ),
                         Tab(
                           text: screenWidth > 400 ? 'History' : null,
                           icon: const Icon(Icons.history, size: 20),
-                          child: screenWidth <= 400
-                              ? const Icon(Icons.history, size: 20)
-                              : null,
+                          // child: screenWidth <= 400
+                          //     ? const Icon(Icons.history, size: 20)
+                          //     : null,
                         ),
                         Tab(
                           text: screenWidth > 400 ? 'Risks' : null,
                           icon: const Icon(Icons.warning, size: 20),
-                          child: screenWidth <= 400
-                              ? const Icon(Icons.warning, size: 20)
-                              : null,
+                          // child: screenWidth <= 400
+                          //     ? const Icon(Icons.warning, size: 20)
+                          //     : null,
                         ),
                       ],
                     ),
