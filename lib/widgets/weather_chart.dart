@@ -18,7 +18,7 @@ class WeatherChart extends StatefulWidget {
 
 class _WeatherChartState extends State<WeatherChart> {
   int _selectedMetric = 0; // 0: Temperature, 1: Precipitation, 2: Humidity
-  
+
   final List<String> _metrics = ['Temperature', 'Precipitation', 'Humidity'];
   final List<IconData> _metricIcons = [
     Icons.thermostat,
@@ -29,7 +29,8 @@ class _WeatherChartState extends State<WeatherChart> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+    final screenWidth = MediaQuery.of(context).size.width;
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -43,62 +44,80 @@ class _WeatherChartState extends State<WeatherChart> {
               ),
             ),
             const SizedBox(height: 16),
-            
-            // Metric selector
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: List.generate(_metrics.length, (index) {
-                final isSelected = _selectedMetric == index;
-                return GestureDetector(
-                  onTap: () => setState(() => _selectedMetric = index),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: isSelected 
-                          ? theme.colorScheme.primary 
-                          : theme.colorScheme.surfaceVariant,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          _metricIcons[index],
-                          size: 16,
-                          color: isSelected 
-                              ? Colors.white 
-                              : theme.colorScheme.onSurfaceVariant,
+
+            // FIX: Use SingleChildScrollView with a Row for horizontal scrolling
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              // Apply padding only to the right of the entire scroll view
+              padding: const EdgeInsets.only(right: 8.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: List.generate(_metrics.length, (index) {
+                  final isSelected = _selectedMetric == index;
+                  // Space between buttons, applied to the right of every item except the last one
+                  final horizontalSpacing = index < _metrics.length - 1 ? 8.0 : 0.0;
+
+                  return Padding(
+                    padding: EdgeInsets.only(right: horizontalSpacing),
+                    child: GestureDetector(
+                      onTap: () => setState(() => _selectedMetric = index),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? theme.colorScheme.primary
+                              : theme.colorScheme.surfaceVariant,
+                          borderRadius: BorderRadius.circular(20),
                         ),
-                        const SizedBox(width: 4),
-                        Text(
-                          _metrics[index],
-                          style: TextStyle(
-                            color: isSelected 
-                                ? Colors.white 
-                                : theme.colorScheme.onSurfaceVariant,
-                            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                            fontSize: 12,
-                          ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              _metricIcons[index],
+                              size: 16,
+                              color: isSelected
+                                  ? Colors.white
+                                  : theme.colorScheme.onSurfaceVariant,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              _metrics[index],
+                              style: TextStyle(
+                                color: isSelected
+                                    ? Colors.white
+                                    : theme.colorScheme.onSurfaceVariant,
+                                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
-                  ),
-                );
-              }),
-            ),
-            
-            const SizedBox(height: 20),
-            
-            // Chart
-            SizedBox(
-              height: 200,
-              child: LineChart(
-                _buildChartData(),
+                  );
+                }),
               ),
             ),
-            
+
+            const SizedBox(height: 20),
+
+            // Responsive Chart Height using LayoutBuilder
+            LayoutBuilder(
+              builder: (context, constraints) {
+                // Height is based on a factor of available width, clamped to a reasonable range
+                final height = constraints.maxWidth * 0.6;
+                return SizedBox(
+                  // Min height of 180 and Max height of 300
+                  height: height.clamp(180.0, 300.0),
+                  child: LineChart(
+                    _buildChartData(screenWidth),
+                  ),
+                );
+              },
+            ),
+
             const SizedBox(height: 16),
-            
+
             // Legend
             _buildLegend(),
           ],
@@ -107,9 +126,9 @@ class _WeatherChartState extends State<WeatherChart> {
     );
   }
 
-  LineChartData _buildChartData() {
+  LineChartData _buildChartData(double screenWidth) {
     final theme = Theme.of(context);
-    
+
     // Prepare data points
     final historicalSpots = <FlSpot>[];
     for (int i = 0; i < widget.historicalData.length; i++) {
@@ -121,6 +140,10 @@ class _WeatherChartState extends State<WeatherChart> {
     // Add forecast point
     final forecastValue = _getMetricValue(widget.forecast, _selectedMetric);
     final forecastSpot = FlSpot(widget.historicalData.length.toDouble(), forecastValue);
+
+    // Responsive reserved size for Y-Axis titles to prevent overlap
+    final yAxisReservedSize = screenWidth < 350 ? 30.0 : 42.0;
+    final axisFontSize = screenWidth < 350 ? 8.0 : 10.0;
 
     return LineChartData(
       gridData: FlGridData(
@@ -156,6 +179,8 @@ class _WeatherChartState extends State<WeatherChart> {
             interval: 1,
             getTitlesWidget: (double value, TitleMeta meta) {
               if (value.toInt() < widget.historicalData.length) {
+                // This assumes your WeatherData model has a DateTime property named 'date'
+                // and historicalData is chronologically ordered.
                 final year = widget.historicalData[value.toInt()].date.year;
                 return SideTitleWidget(
                   axisSide: meta.axisSide,
@@ -164,7 +189,7 @@ class _WeatherChartState extends State<WeatherChart> {
                     style: TextStyle(
                       color: Colors.grey[600],
                       fontWeight: FontWeight.bold,
-                      fontSize: 10,
+                      fontSize: axisFontSize, // Responsive font size
                     ),
                   ),
                 );
@@ -176,7 +201,7 @@ class _WeatherChartState extends State<WeatherChart> {
                     style: TextStyle(
                       color: theme.colorScheme.primary,
                       fontWeight: FontWeight.bold,
-                      fontSize: 10,
+                      fontSize: axisFontSize, // Responsive font size
                     ),
                   ),
                 );
@@ -189,14 +214,14 @@ class _WeatherChartState extends State<WeatherChart> {
           sideTitles: SideTitles(
             showTitles: true,
             interval: _getInterval(_selectedMetric),
-            reservedSize: 42,
+            reservedSize: yAxisReservedSize, // Responsive reserved size
             getTitlesWidget: (double value, TitleMeta meta) {
               return Text(
                 _formatYAxisLabel(value, _selectedMetric),
                 style: TextStyle(
                   color: Colors.grey[600],
                   fontWeight: FontWeight.bold,
-                  fontSize: 10,
+                  fontSize: axisFontSize, // Responsive font size
                 ),
               );
             },
@@ -245,7 +270,7 @@ class _WeatherChartState extends State<WeatherChart> {
             ),
           ),
         ),
-        
+
         // Forecast point
         LineChartBarData(
           spots: [forecastSpot],
@@ -275,7 +300,7 @@ class _WeatherChartState extends State<WeatherChart> {
 
   Widget _buildLegend() {
     final theme = Theme.of(context);
-    
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -345,9 +370,9 @@ class _WeatherChartState extends State<WeatherChart> {
   double _getMinY(int metricIndex) {
     final values = widget.historicalData.map((d) => _getMetricValue(d, metricIndex)).toList();
     values.add(_getMetricValue(widget.forecast, metricIndex));
-    
+
     final minValue = values.reduce((a, b) => a < b ? a : b);
-    
+
     switch (metricIndex) {
       case 0: return (minValue - 5).floorToDouble(); // Temperature
       case 1: return 0.0; // Precipitation starts at 0
@@ -359,9 +384,9 @@ class _WeatherChartState extends State<WeatherChart> {
   double _getMaxY(int metricIndex) {
     final values = widget.historicalData.map((d) => _getMetricValue(d, metricIndex)).toList();
     values.add(_getMetricValue(widget.forecast, metricIndex));
-    
+
     final maxValue = values.reduce((a, b) => a > b ? a : b);
-    
+
     switch (metricIndex) {
       case 0: return (maxValue + 5).ceilToDouble(); // Temperature
       case 1: return (maxValue + 2).ceilToDouble(); // Precipitation

@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:geocoding/geocoding.dart';
 import 'dart:math';
-
-// flutter_earth_globe imports
 import 'package:flutter_earth_globe/flutter_earth_globe.dart';
 import 'package:flutter_earth_globe/flutter_earth_globe_controller.dart';
 import 'package:flutter_earth_globe/globe_coordinates.dart';
@@ -646,7 +644,7 @@ class _EarthGlobeScreenState extends State<EarthGlobeScreen>
             TextField(
               controller: _searchController,
               decoration: const InputDecoration(
-                hintText: 'Enter city name (e.g., "Paris", "New York", "Tokyo")',
+                hintText: 'Enter city name',
                 prefixIcon: Icon(Icons.search),
                 border: OutlineInputBorder(),
               ),
