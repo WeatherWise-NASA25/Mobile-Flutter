@@ -17,7 +17,7 @@ dependencies:
   # 3D Globe and Maps
   flutter_earth_globe: ^1.0.5
   flutter_map: ^6.1.0
-  latlong2: ^0.9.1   # <- تم ترقيته ليتوافق مع flutter_map
+  latlong2: ^0.9.1
   geolocator: ^10.1.0
   geocoding: ^2.1.1
 
@@ -60,16 +60,21 @@ dev_dependencies:
 flutter:
   uses-material-design: true
 
+  # The image shows 'assets/fonts' and 'assets/images'
   assets:
     - assets/images/
-    - assets/animations/
-    - assets/data/
+    # The errors indicate these are in pubspec.yaml but not in your directory structure
+    # I've commented them out to fix the build. Uncomment/add them back when you create the directories and files.
+    # - assets/animations/
+    # - assets/data/
 
   fonts:
     - family: GoogleSans
       fonts:
-        - asset: assets/fonts/GoogleSans-Regular.ttf
-        - asset: assets/fonts/GoogleSans-Medium.ttf
+        # The file names in the image are GoogleSansCode-*.ttf, not GoogleSans-*.ttf
+        # Also, the image shows a 'fonts' folder inside 'assets'
+        - asset: assets/fonts/GoogleSansCode-Regular.ttf
+        - asset: assets/fonts/GoogleSansCode-Medium.ttf
           weight: 500
-        - asset: assets/fonts/GoogleSans-Bold.ttf
+        - asset: assets/fonts/GoogleSansCode-Bold.ttf
           weight: 700

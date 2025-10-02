@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../models/weather_model.dart';
 
 class RecommendationsCard extends StatelessWidget {
   final List<String> recommendations;
@@ -14,7 +15,7 @@ class RecommendationsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final riskColor = _getRiskColor(riskLevel);
-    
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -54,18 +55,18 @@ class RecommendationsCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 16),
-            
+
             if (recommendations.isEmpty)
-              _buildEmptyState()
+              _buildEmptyState(context)
             else
-              _buildRecommendationsList(),
+              _buildRecommendationsList(context),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -103,36 +104,36 @@ class RecommendationsCard extends StatelessWidget {
     );
   }
 
-  Widget _buildRecommendationsList() {
+  Widget _buildRecommendationsList(BuildContext context) {
     return Column(
       children: recommendations.asMap().entries.map((entry) {
         final index = entry.key;
         final recommendation = entry.value;
-        
+
         return Padding(
           padding: EdgeInsets.only(bottom: index < recommendations.length - 1 ? 12 : 0),
-          child: _buildRecommendationItem(recommendation, index),
+          child: _buildRecommendationItem(context, recommendation, index),
         );
       }).toList(),
     );
   }
 
-  Widget _buildRecommendationItem(String recommendation, int index) {
+  Widget _buildRecommendationItem(BuildContext context, String recommendation, int index) {
     final theme = Theme.of(context);
-    
+
     // Extract emoji and text
     final parts = recommendation.split(' ');
     String emoji = '';
     String text = recommendation;
-    
+
     if (parts.isNotEmpty && _isEmoji(parts[0])) {
       emoji = parts[0];
       text = parts.skip(1).join(' ');
     }
-    
+
     final priority = _getRecommendationPriority(recommendation);
     final priorityColor = _getPriorityColor(priority);
-    
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -156,7 +157,7 @@ class RecommendationsCard extends StatelessWidget {
               shape: BoxShape.circle,
             ),
           ),
-          
+
           // Emoji (if present)
           if (emoji.isNotEmpty) ...[
             Text(
@@ -165,7 +166,7 @@ class RecommendationsCard extends StatelessWidget {
             ),
             const SizedBox(width: 12),
           ],
-          
+
           // Text content
           Expanded(
             child: Column(
@@ -178,7 +179,7 @@ class RecommendationsCard extends StatelessWidget {
                     height: 1.4,
                   ),
                 ),
-                
+
                 // Priority badge
                 if (priority != 'normal') ...[
                   const SizedBox(height: 8),
@@ -214,18 +215,18 @@ class RecommendationsCard extends StatelessWidget {
 
   String _getRecommendationPriority(String recommendation) {
     final upperCase = recommendation.toUpperCase();
-    
-    if (upperCase.contains('HIGH') || 
+
+    if (upperCase.contains('HIGH') ||
         upperCase.contains('STRONG') ||
         upperCase.contains('EMERGENCY') ||
         upperCase.contains('CRITICAL')) {
       return 'high';
-    } else if (upperCase.contains('MODERATE') || 
-               upperCase.contains('CONSIDER') ||
-               upperCase.contains('RECOMMENDED')) {
+    } else if (upperCase.contains('MODERATE') ||
+        upperCase.contains('CONSIDER') ||
+        upperCase.contains('RECOMMENDED')) {
       return 'medium';
     }
-    
+
     return 'normal';
   }
 

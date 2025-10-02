@@ -1,3 +1,5 @@
+import '../models/location_model.dart'; // Add this import
+
 class WeatherData {
   final DateTime date;
   final double temperature;

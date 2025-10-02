@@ -1,8 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
+// flutter_earth_globe imports (مهمّة: استورد الملفات الخاصة عشان تلاقي الـ classes)
 import 'package:flutter_earth_globe/flutter_earth_globe.dart';
 import 'package:flutter_earth_globe/flutter_earth_globe_controller.dart';
+import 'package:flutter_earth_globe/globe_coordinates.dart';
+import 'package:flutter_earth_globe/point.dart';
+// import 'package:flutter_earth_globe/visible_point.dart'; // تم حذف هذا الاستيراد
+
 import 'package:provider/provider.dart';
+
 import '../providers/location_provider.dart';
 import '../models/location_model.dart';
 import '../utils/constants.dart';
@@ -21,7 +28,7 @@ class _EarthGlobeScreenState extends State<EarthGlobeScreen>
   late FlutterEarthGlobeController _globeController;
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
-  
+
   bool _isGlobeReady = false;
   bool _showInstructions = true;
 
@@ -40,7 +47,6 @@ class _EarthGlobeScreenState extends State<EarthGlobeScreen>
       isRotating: true,
     );
 
-    // Setup globe appearance after build
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _setupGlobeAppearance();
     });
@@ -61,72 +67,67 @@ class _EarthGlobeScreenState extends State<EarthGlobeScreen>
     ));
   }
 
-  void _setupGlobeAppearance() async {
+  // -------------------------------------------------------------------
+  // NOTE: loadBackground/loadSurface return void in this package version,
+  // so don't await them and don't pass unknown named params.
+  // -------------------------------------------------------------------
+  Future<void> _setupGlobeAppearance() async {
     try {
-      // Load Earth day texture
-      await _globeController.loadSurfaceImages();
-      
-      // Load star field background
-      await _globeController.loadBackground(
-        const AssetImage('assets/images/stars.jpg'),
-        followsRotation: true,
-      );
+      // غيّر مسارات الأصول لو عندك أسماء مختلفة في المشروع
+      _globeController.loadBackground(Image.asset('assets/2k_stars.jpg').image);
+      _globeController.loadSurface(Image.asset('assets/2k_earth-day.jpg').image);
 
-      // Customize sphere style
-      _globeController.changeSphereStyle(
-        SphereStyle(
-          shadowColor: Colors.black.withOpacity(0.4),
-          shadowBlurSigma: 20,
-        ),
-      );
-
-      // Add sample location points
       _addSampleLocationPoints();
 
       setState(() {
         _isGlobeReady = true;
       });
     } catch (e) {
+      // ignore: avoid_print
       print('Error setting up globe: $e');
       setState(() {
-        _isGlobeReady = true; // Show even if textures fail to load
+        _isGlobeReady = true;
       });
     }
   }
 
   void _addSampleLocationPoints() {
-    for (int i = 0; i < AppConstants.sampleLocations.length; i++) {
-      final location = AppConstants.sampleLocations[i];
-      
-      _globeController.addPoint(
-        Point(
-          id: 'location_$i',
-          coordinates: GlobeCoordinates(
-            location['latitude']!,
-            location['longitude']!,
-          ),
-          label: location['name']!,
-          isLabelVisible: false,
-          style: PointStyle(
-            color: Colors.amber,
-            size: 6,
-          ),
-          onTap: () => _onLocationTapped(location),
-          onHover: () => _onLocationHovered(location),
+    final list = AppConstants.sampleLocationDetails;
+
+    for (int i = 0; i < list.length; i++) {
+      final location = list[i];
+
+      final double lat = (location['latitude'] as num).toDouble();
+      final double lng = (location['longitude'] as num).toDouble();
+      final String name = location['name']?.toString() ?? 'Location $i';
+
+      final point = Point(
+        id: 'location_$i',
+        coordinates: GlobeCoordinates(lat, lng),
+        label: name,
+        isLabelVisible: false,
+        // تم حل خطأ 'VisiblePointStyle' باستبدالها بـ 'PointStyle'
+        style: const PointStyle(
+          color: Colors.amber,
+          size: 6,
         ),
+        onTap: () => _onLocationTapped(location),
+        onHover: () => _onLocationHovered(location),
       );
+
+      _globeController.addPoint(point);
     }
   }
 
   void _onLocationTapped(Map<String, dynamic> locationData) {
     HapticFeedback.lightImpact();
-    
+
     final location = LocationModel(
-      name: locationData['name']!,
-      country: locationData['country']!,
-      latitude: locationData['latitude']!,
-      longitude: locationData['longitude']!,
-      timezone: locationData['timezone'],
+      name: locationData['name']?.toString() ?? 'Unknown',
+      country: locationData['country']?.toString() ?? 'Unknown',
+      latitude: (locationData['latitude'] as num).toDouble(),
+      longitude: (locationData['longitude'] as num).toDouble(),
+      timezone: locationData['timezone']?.toString(),
     );
 
     context.read<LocationProvider>().setSelectedLocation(location);
@@ -134,16 +135,14 @@ class _EarthGlobeScreenState extends State<EarthGlobeScreen>
   }
 
   void _onLocationHovered(Map<String, dynamic> locationData) {
-    // Show temporary label or highlight
     setState(() {
-      // Update UI to show location name briefly
+      // اختياري: عرض اسم قصير أو تأثير
     });
   }
 
   void _onGlobeTapped(GlobeCoordinates coordinates) {
     HapticFeedback.mediumImpact();
-    
-    // Create location from coordinates
+
     final location = LocationModel(
       name: 'Custom Location',
       country: 'Unknown',
@@ -175,10 +174,8 @@ class _EarthGlobeScreenState extends State<EarthGlobeScreen>
   }
 
   void _resetGlobeRotation() {
-    _globeController.animateToCoordinates(
-      GlobeCoordinates(0, 0),
-      duration: const Duration(seconds: 2),
-    );
+    // animateTo غير مدعومة في نسخة الحزمة؛ بنستخدم resetRotation بدلها
+    _globeController.resetRotation();
   }
 
   @override
@@ -225,43 +222,42 @@ class _EarthGlobeScreenState extends State<EarthGlobeScreen>
       ),
       body: Stack(
         children: [
-          // Gradient background
           const GradientBackground(),
-          
-          // 3D Earth Globe
+
           if (_isGlobeReady)
             Positioned.fill(
               child: GestureDetector(
                 onTapDown: (details) {
-                  // Convert screen coordinates to globe coordinates
                   final RenderBox renderBox = context.findRenderObject() as RenderBox;
                   final localPosition = renderBox.globalToLocal(details.globalPosition);
-                  
-                  // Calculate globe coordinates (this is a simplified calculation)
+
                   final centerX = size.width / 2;
                   final centerY = size.height / 2;
-                  final radius = 150.0; // Globe radius
-                  
+                  final radius = 150.0;
+
                   final dx = localPosition.dx - centerX;
                   final dy = localPosition.dy - centerY;
-                  final distance = (dx * dx + dy * dy).abs();
-                  
-                  // Check if tap is within globe
-                  if (distance <= radius * radius) {
-                    // Convert to lat/lng (simplified)
-                    final lat = (dy / radius) * 90;
+                  final distanceSquared = dx * dx + dy * dy;
+
+                  if (distanceSquared <= radius * radius) {
+                    final lat = (dy / radius) * -90;
                     final lng = (dx / radius) * 180;
-                    _onGlobeTapped(GlobeCoordinates(lat.clamp(-90, 90), lng.clamp(-180, 180)));
+
+                    final clampedLat = lat.clamp(-90.0, 90.0);
+                    final clampedLng = lng.clamp(-180.0, 180.0);
+
+                    _onGlobeTapped(GlobeCoordinates(clampedLat, clampedLng));
                   }
                 },
-                child: FlutterEarthGlobe(
-                  controller: _globeController,
-                  radius: 150,
+                child: Center(
+                  child: FlutterEarthGlobe(
+                    controller: _globeController,
+                    radius: 150,
+                  ),
                 ),
               ),
             )
           else
-            // Loading state
             Positioned.fill(
               child: Center(
                 child: Column(
@@ -304,7 +300,6 @@ class _EarthGlobeScreenState extends State<EarthGlobeScreen>
               ),
             ),
 
-          // Instructions overlay
           if (_showInstructions && _isGlobeReady)
             Positioned(
               top: 120,
@@ -384,13 +379,11 @@ class _EarthGlobeScreenState extends State<EarthGlobeScreen>
               ),
             ),
 
-          // Floating action button for manual location search
           Positioned(
             bottom: 30,
             right: 20,
             child: FloatingActionButton.extended(
               onPressed: () {
-                // TODO: Implement location search
                 _showLocationSearchDialog();
               },
               backgroundColor: theme.colorScheme.primary,
@@ -424,7 +417,6 @@ class _EarthGlobeScreenState extends State<EarthGlobeScreen>
           FilledButton(
             onPressed: () {
               Navigator.pop(context);
-              // TODO: Implement search functionality
             },
             child: const Text('Search'),
           ),
@@ -477,3 +469,42 @@ class _EarthGlobeScreenState extends State<EarthGlobeScreen>
     );
   }
 }
+
+// -------------------------------------------------------------------
+// تذكير: يجب أن يحتوي ملف '../utils/constants.dart' على الكلاس AppConstants
+//
+// مثال لملف '../utils/constants.dart' (للتوضيح فقط، يجب عليك إنشاؤه):
+//
+/*
+import 'package:flutter/material.dart';
+
+class AppConstants {
+  static const Duration mediumAnimation = Duration(milliseconds: 500);
+
+  static const List<Map<String, dynamic>> sampleLocationDetails = [
+    {
+      'name': 'New York',
+      'country': 'USA',
+      'latitude': 40.7128,
+      'longitude': -74.0060,
+      'timezone': 'EST',
+    },
+    {
+      'name': 'Tokyo',
+      'country': 'Japan',
+      'latitude': 35.6895,
+      'longitude': 139.6917,
+      'timezone': 'JST',
+    },
+    {
+      'name': 'Cairo',
+      'country': 'Egypt',
+      'latitude': 30.0333,
+      'longitude': 31.2333,
+      'timezone': 'EET',
+    },
+    // أضف المزيد من المواقع هنا...
+  ];
+}
+*/
+// -------------------------------------------------------------------

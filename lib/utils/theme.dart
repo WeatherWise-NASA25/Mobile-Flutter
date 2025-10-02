@@ -5,29 +5,29 @@ class AppTheme {
   static const Color primaryBlue = Color(0xFF1976D2);
   static const Color primaryBlueLight = Color(0xFF42A5F5);
   static const Color primaryBlueDark = Color(0xFF0D47A1);
-  
+
   static const Color accentGreen = Color(0xFF4CAF50);
   static const Color accentOrange = Color(0xFFFF9800);
   static const Color accentRed = Color(0xFFF44336);
-  
+
   static const Color surfaceLight = Color(0xFFFAFAFA);
   static const Color surfaceDark = Color(0xFF121212);
-  
+
   // Light Theme
   static ThemeData get lightTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
-      
+
       colorScheme: ColorScheme.fromSeed(
         seedColor: primaryBlue,
         brightness: Brightness.light,
         surface: surfaceLight,
         surfaceVariant: const Color(0xFFF5F5F5),
       ),
-      
+
       fontFamily: 'GoogleSans',
-      
+
       textTheme: const TextTheme(
         displayLarge: TextStyle(
           fontSize: 32,
@@ -73,7 +73,7 @@ class AppTheme {
           letterSpacing: 0.1,
         ),
       ),
-      
+
       appBarTheme: const AppBarTheme(
         centerTitle: true,
         elevation: 0,
@@ -86,15 +86,15 @@ class AppTheme {
           fontFamily: 'GoogleSans',
         ),
       ),
-      
-      cardTheme: CardTheme(
-        elevation: 2,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        margin: const EdgeInsets.all(8),
-      ),
-      
+
+      // cardTheme: CardTheme(
+      //   elevation: 2,
+      //   shape: RoundedRectangleBorder(
+      //     borderRadius: BorderRadius.circular(16),
+      //   ),
+      //   margin: const EdgeInsets.all(8),
+      // ),
+
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           elevation: 2,
@@ -109,7 +109,7 @@ class AppTheme {
           ),
         ),
       ),
-      
+
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
@@ -123,7 +123,7 @@ class AppTheme {
           ),
         ),
       ),
-      
+
       bottomSheetTheme: const BottomSheetThemeData(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -132,22 +132,22 @@ class AppTheme {
       ),
     );
   }
-  
+
   // Dark Theme
   static ThemeData get darkTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
-      
+
       colorScheme: ColorScheme.fromSeed(
         seedColor: primaryBlue,
         brightness: Brightness.dark,
         surface: surfaceDark,
         surfaceVariant: const Color(0xFF1E1E1E),
       ),
-      
+
       fontFamily: 'GoogleSans',
-      
+
       textTheme: const TextTheme(
         displayLarge: TextStyle(
           fontSize: 32,
@@ -202,7 +202,7 @@ class AppTheme {
           color: Colors.white,
         ),
       ),
-      
+
       appBarTheme: const AppBarTheme(
         centerTitle: true,
         elevation: 0,
@@ -215,16 +215,16 @@ class AppTheme {
           fontFamily: 'GoogleSans',
         ),
       ),
-      
-      cardTheme: CardTheme(
-        elevation: 2,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        margin: const EdgeInsets.all(8),
-        color: const Color(0xFF1E1E1E),
-      ),
-      
+
+      // cardTheme: CardTheme(
+      //   elevation: 2,
+      //   shape: RoundedRectangleBorder(
+      //     borderRadius: BorderRadius.circular(16),
+      //   ),
+      //   margin: const EdgeInsets.all(8),
+      //   color: const Color(0xFF1E1E1E),
+      // ),
+
       bottomSheetTheme: const BottomSheetThemeData(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),

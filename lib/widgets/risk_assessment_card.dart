@@ -14,7 +14,7 @@ class RiskAssessmentCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -37,25 +37,25 @@ class RiskAssessmentCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 16),
-            
+
             // Overall risk indicator
-            _buildOverallRiskIndicator(),
-            
+            _buildOverallRiskIndicator(context),
+
             const SizedBox(height: 24),
-            
+
             // Individual risk factors
-            _buildRiskFactors(),
+            _buildRiskFactors(context),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildOverallRiskIndicator() {
+  Widget _buildOverallRiskIndicator(BuildContext context) {
     final theme = Theme.of(context);
     final riskColor = _getRiskColor(riskAssessment.overallRisk);
     final riskLabel = _getRiskLabel(riskAssessment.overallRisk);
-    
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -105,10 +105,11 @@ class RiskAssessmentCard extends StatelessWidget {
     );
   }
 
-  Widget _buildRiskFactors() {
+  Widget _buildRiskFactors(BuildContext context) {
     return Column(
       children: [
         _buildRiskFactor(
+          context,
           'Precipitation Risk',
           riskAssessment.precipitationRisk,
           Icons.water_drop,
@@ -116,6 +117,7 @@ class RiskAssessmentCard extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         _buildRiskFactor(
+          context,
           'Temperature Risk',
           riskAssessment.temperatureRisk,
           Icons.thermostat,
@@ -123,6 +125,7 @@ class RiskAssessmentCard extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         _buildRiskFactor(
+          context,
           'Wind Risk',
           riskAssessment.windRisk,
           Icons.air,
@@ -130,6 +133,7 @@ class RiskAssessmentCard extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         _buildRiskFactor(
+          context,
           'Visibility Risk',
           riskAssessment.visibilityRisk,
           Icons.visibility,
@@ -139,10 +143,10 @@ class RiskAssessmentCard extends StatelessWidget {
     );
   }
 
-  Widget _buildRiskFactor(String title, double risk, IconData icon, String description) {
+  Widget _buildRiskFactor(BuildContext context, String title, double risk, IconData icon, String description) {
     final riskColor = _getRiskColor(risk);
     final riskLabel = _getRiskLabel(risk);
-    
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(

@@ -4,8 +4,8 @@ import 'package:provider/provider.dart';
 import '../models/location_model.dart';
 import '../models/weather_model.dart';
 import '../providers/weather_provider.dart';
+import '../screens/weather_analysis_screen.dart' show WeatherAnalysisScreen;
 import '../utils/constants.dart';
-import 'weather_analysis_screen.dart';
 
 class LocationSelectionSheet extends StatefulWidget {
   final LocationModel location;
