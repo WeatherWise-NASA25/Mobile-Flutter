@@ -13,43 +13,42 @@ dependencies:
 
   # UI and Icons
   cupertino_icons: ^1.0.6
-  material_color_utilities: ^0.8.0
-  
+
   # 3D Globe and Maps
-  flutter_earth_globe: ^2.0.0
+  flutter_earth_globe: ^1.0.5
   flutter_map: ^6.1.0
-  latlong2: ^0.8.1
+  latlong2: ^0.9.1   # <- تم ترقيته ليتوافق مع flutter_map
   geolocator: ^10.1.0
   geocoding: ^2.1.1
-  
+
   # HTTP and API
   http: ^1.1.0
   dio: ^5.3.3
-  
+
   # Data and Storage
   shared_preferences: ^2.2.2
   path_provider: ^2.1.1
   sqflite: ^2.3.0
-  
+
   # State Management
   provider: ^6.1.1
-  
+
   # UI Enhancements
   flutter_staggered_animations: ^1.1.1
   shimmer: ^3.0.0
   lottie: ^2.7.0
-  
+
   # Charts and Data Visualization
   fl_chart: ^0.64.0
   syncfusion_flutter_charts: ^23.1.44
-  
+
   # Date and Time
   intl: ^0.18.1
-  
+
   # File Operations
   csv: ^5.0.2
   permission_handler: ^11.0.1
-  
+
   # Animations
   animated_text_kit: ^4.2.2
 
@@ -65,7 +64,7 @@ flutter:
     - assets/images/
     - assets/animations/
     - assets/data/
-    
+
   fonts:
     - family: GoogleSans
       fonts:
