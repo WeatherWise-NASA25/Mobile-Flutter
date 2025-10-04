@@ -70,60 +70,28 @@ class AppConstants {
   // تم تغيير الاسم من sampleLocations إلى sampleLocationDetails لحل الخطأ
   static const List<Map<String, dynamic>> sampleLocationDetails = [
     {
-      'name': 'New York City, USA',
-      'country': 'United States',
-      'latitude': 40.7128,
-      'longitude': -74.0060,
-      'timezone': 'America/New_York',
+
     },
     {
-      'name': 'London, UK',
-      'country': 'United Kingdom',
-      'latitude': 51.5074,
-      'longitude': -0.1278,
-      'timezone': 'Europe/London',
+
     },
     {
-      'name': 'Tokyo, Japan',
-      'country': 'Japan',
-      'latitude': 35.6762,
-      'longitude': 139.6503,
-      'timezone': 'Asia/Tokyo',
+
     },
     {
-      'name': 'Sydney, Australia',
-      'country': 'Australia',
-      'latitude': -33.8688,
-      'longitude': 151.2093,
-      'timezone': 'Australia/Sydney',
+
     },
     {
-      'name': 'Cairo, Egypt',
-      'country': 'Egypt',
-      'latitude': 30.0444,
-      'longitude': 31.2357,
-      'timezone': 'Africa/Cairo',
+
     },
     {
-      'name': 'São Paulo, Brazil',
-      'country': 'Brazil',
-      'latitude': -23.5505,
-      'longitude': -46.6333,
-      'timezone': 'America/Sao_Paulo',
+
     },
     {
-      'name': 'Mumbai, India',
-      'country': 'India',
-      'latitude': 19.0760,
-      'longitude': 72.8777,
-      'timezone': 'Asia/Kolkata',
+
     },
     {
-      'name': 'Cape Town, South Africa',
-      'country': 'South Africa',
-      'latitude': -33.9249,
-      'longitude': 18.4241,
-      'timezone': 'Africa/Johannesburg',
+
     },
   ];
 }

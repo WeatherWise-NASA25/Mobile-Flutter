@@ -18,7 +18,7 @@ class RecommendationsCard extends StatelessWidget {
 
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(15),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -29,13 +29,18 @@ class RecommendationsCard extends StatelessWidget {
                   color: theme.colorScheme.primary,
                 ),
                 const SizedBox(width: 8),
-                Text(
-                  'Recommendations',
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
+                // make the title responsive
+                Expanded(
+                  child: Text(
+                    'Recommendations — مثال على عنوان طويل ممكن يحصل overflow هنا',
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                const Spacer(),
+                const SizedBox(width: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
@@ -64,6 +69,7 @@ class RecommendationsCard extends StatelessWidget {
         ),
       ),
     );
+
   }
 
   Widget _buildEmptyState(BuildContext context) {

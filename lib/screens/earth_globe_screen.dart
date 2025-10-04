@@ -683,34 +683,47 @@ class _EarthGlobeScreenState extends State<EarthGlobeScreen>
       builder: (context) => AlertDialog(
         title: Row(
           children: [
-            Icon(Icons.info_outline, color: Theme.of(context).colorScheme.primary),
+            Icon(
+              Icons.info_outline,
+              color: Theme.of(context).colorScheme.primary,
+            ),
             const SizedBox(width: 8),
-            const Text('About WeatherWise'),
+            Expanded( // ✅ ده بيخلي النص يلف وما يعملش overflow
+              child: Text(
+                'About WeatherWise',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                ),
+                overflow: TextOverflow.ellipsis, // اختياري لو عايز تقطع النص
+              ),
+            ),
           ],
         ),
-        content: const Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'WeatherWise helps you plan perfect outdoor events using NASA Earth observation data.',
-              style: TextStyle(fontSize: 16, height: 1.4),
-            ),
-            SizedBox(height: 12),
-            Text('Features:', style: TextStyle(fontWeight: FontWeight.bold)),
-            SizedBox(height: 4),
-            Text('• Interactive full-screen 3D Earth globe'),
-            Text('• Pinch-to-zoom navigation'),
-            Text('• City search with geocoding'),
-            Text('• Real-time weather analysis'),
-            Text('• Event suitability assessment'),
-            Text('• Risk predictions and recommendations'),
-            SizedBox(height: 12),
-            Text(
-              'Powered by NASA GPM IMERG, MODIS, and Landsat satellite data.',
-              style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
-            ),
-          ],
+        content: const SingleChildScrollView( // ✅ لو المحتوى طويل
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'WeatherWise helps you plan perfect outdoor events using NASA Earth observation data.',
+                style: TextStyle(fontSize: 16, height: 1.4),
+              ),
+              SizedBox(height: 12),
+              Text('Features:', style: TextStyle(fontWeight: FontWeight.bold)),
+              SizedBox(height: 4),
+              Text('• Interactive full-screen 3D Earth globe'),
+              Text('• Pinch-to-zoom navigation'),
+              Text('• City search with geocoding'),
+              Text('• Real-time weather analysis'),
+              Text('• Event suitability assessment'),
+              Text('• Risk predictions and recommendations'),
+              SizedBox(height: 12),
+              Text(
+                'Powered by NASA GPM IMERG, MODIS, and Landsat satellite data.',
+                style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
+              ),
+            ],
+          ),
         ),
         actions: [
           FilledButton(
@@ -721,6 +734,7 @@ class _EarthGlobeScreenState extends State<EarthGlobeScreen>
       ),
     );
   }
+
 }
 
 // Custom painter for full-screen Earth appearance

@@ -6,10 +6,10 @@ import 'package:intl/intl.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:csv/csv.dart';
-import 'package:permission_handler/permission_handler.dart';
 import '../models/location_model.dart';
 import '../models/weather_model.dart';
 import '../providers/weather_provider.dart';
+import '../widgets/weather_chart.dart';
 import '../widgets/weather_chart.dart';
 import '../widgets/risk_assessment_card.dart';
 import '../widgets/recommendations_card.dart';
@@ -96,29 +96,21 @@ class _WeatherAnalysisScreenState extends State<WeatherAnalysisScreen>
                       labelPadding: EdgeInsets.symmetric(
                         horizontal: screenWidth > 400 ? 16 : 8,
                       ),
-                      tabs: [
+                      tabs: const [
                         Tab(
-                          text: screenWidth > 400 ? 'Forecast' : null,
-                          icon: const Icon(Icons.wb_sunny, size: 20),
-                          // child: screenWidth <= 400
-                          //     ? const Icon(Icons.wb_sunny, size: 20)
-                          //     : null,
+                          text: 'Forecast',
+                          icon: Icon(Icons.wb_sunny, size: 20),
                         ),
                         Tab(
-                          text: screenWidth > 400 ? 'History' : null,
-                          icon: const Icon(Icons.history, size: 20),
-                          // child: screenWidth <= 400
-                          //     ? const Icon(Icons.history, size: 20)
-                          //     : null,
+                          text: 'History',
+                          icon: Icon(Icons.history, size: 20),
                         ),
                         Tab(
-                          text: screenWidth > 400 ? 'Risks' : null,
-                          icon: const Icon(Icons.warning, size: 20),
-                          // child: screenWidth <= 400
-                          //     ? const Icon(Icons.warning, size: 20)
-                          //     : null,
+                          text: 'Risks',
+                          icon: Icon(Icons.warning, size: 20),
                         ),
                       ],
+
                     ),
                   ),
                 ),
@@ -466,8 +458,6 @@ class _WeatherAnalysisScreenState extends State<WeatherAnalysisScreen>
 
   Widget _buildWeatherDetail(IconData icon, String label, String value) {
     final screenWidth = MediaQuery.of(context).size.width;
-
-    // Reverted to Row-based layout to align icon and text horizontally, saving vertical space.
     return Container(
       padding: EdgeInsets.all(screenWidth > 400 ? 12 : 8),
       decoration: BoxDecoration(
@@ -495,16 +485,14 @@ class _WeatherAnalysisScreenState extends State<WeatherAnalysisScreen>
                   value,
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    // Slightly reduced font size for mobile
-                    fontSize: screenWidth > 400 ? 16 : 14,
+                    fontSize: screenWidth > 400 ? 18 : 16,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
                 Text(
                   label,
                   style: TextStyle(
-                    // Slightly reduced font size for mobile
-                    fontSize: screenWidth > 400 ? 12 : 10,
+                    fontSize: screenWidth > 400 ? 14 : 12,
                     color: Colors.grey[600],
                   ),
                   overflow: TextOverflow.ellipsis,
@@ -634,65 +622,80 @@ class _WeatherAnalysisScreenState extends State<WeatherAnalysisScreen>
     if (analysis == null) return;
 
     try {
-      final status = await Permission.storage.request();
-      if (!status.isGranted) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Storage permission denied. Cannot export data.'),
-            ),
-          );
+      Directory? downloadsDirectory;
+
+      // For Android API 30+ (Android 11+), we can write to Downloads without storage permission
+      if (Platform.isAndroid) {
+        // Try to get Downloads directory directly
+        final List<Directory>? externalDirs = await getExternalStorageDirectories(type: StorageDirectory.downloads);
+        if (externalDirs != null && externalDirs.isNotEmpty) {
+          downloadsDirectory = externalDirs.first;
+        } else {
+          // Fallback to public Downloads folder
+          downloadsDirectory = Directory('/storage/emulated/0/Download');
         }
-        return;
+      } else if (Platform.isIOS) {
+        // For iOS, use Documents directory
+        downloadsDirectory = await getApplicationDocumentsDirectory();
       }
 
-      final directory = await getExternalStorageDirectory();
-      final exportDirectory = directory ?? await getApplicationDocumentsDirectory();
+      // Final fallback
+      downloadsDirectory ??= await getApplicationDocumentsDirectory();
 
-      if (!await exportDirectory.exists()) {
-        await exportDirectory.create(recursive: true);
+      // Ensure directory exists
+      if (!await downloadsDirectory.exists()) {
+        await downloadsDirectory.create(recursive: true);
       }
 
-      final fileName = 'weather_analysis_${DateFormat('yyyyMMdd_HHmmss').format(DateTime.now())}.csv';
-      final filePath = '${exportDirectory.path}/$fileName';
+      final fileName = 'WeatherWise_Analysis_${DateFormat('yyyyMMdd_HHmmss').format(DateTime.now())}.csv';
+      final filePath = '${downloadsDirectory.path}/$fileName';
       final file = File(filePath);
 
       final csvData = [
-        ['Weather Analysis Report'],
+        ['Weather Analysis Report - WeatherWise'],
+        ['Generated on', DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now())],
+        [''],
+        ['Event Information'],
         ['Location', analysis.location.displayName],
         ['Event Date', DateFormat('yyyy-MM-dd HH:mm').format(analysis.eventDate)],
         ['Event Type', analysis.eventType],
         ['Suitability Score', analysis.formattedSuitabilityScore],
+        ['Risk Level', analysis.riskLevel],
         ['Analysis Date', DateFormat('yyyy-MM-dd HH:mm').format(analysis.analyzedAt)],
         [''],
-        ['Forecast Data'],
-        ['Temperature (°C)', analysis.forecast.temperature.toString()],
-        ['Humidity (%)', analysis.forecast.humidity.toString()],
-        ['Precipitation (mm)', analysis.forecast.precipitation.toString()],
-        ['Wind Speed (km/h)', analysis.forecast.windSpeed.toString()],
-        ['Cloud Cover (%)', analysis.forecast.cloudCover.toString()],
-        ['Pressure (hPa)', analysis.forecast.pressure.toString()],
-        ['Visibility (km)', analysis.forecast.visibility.toString()],
+        ['Event Day Forecast'],
+        ['Temperature (°C)', analysis.forecast.temperature.toStringAsFixed(1)],
+        ['Humidity (%)', analysis.forecast.humidity.toStringAsFixed(1)],
+        ['Precipitation (mm)', analysis.forecast.precipitation.toStringAsFixed(1)],
+        ['Wind Speed (km/h)', analysis.forecast.windSpeed.toStringAsFixed(1)],
+        ['Cloud Cover (%)', analysis.forecast.cloudCover.toStringAsFixed(1)],
+        ['Pressure (hPa)', analysis.forecast.pressure.toStringAsFixed(1)],
+        ['Visibility (km)', analysis.forecast.visibility.toStringAsFixed(1)],
+        ['Weather Description', analysis.forecast.description],
         [''],
         ['Risk Assessment'],
-        ['Overall Risk', (analysis.riskAssessment.overallRisk * 100).toStringAsFixed(1) + '%'],
-        ['Precipitation Risk', (analysis.riskAssessment.precipitationRisk * 100).toStringAsFixed(1) + '%'],
-        ['Temperature Risk', (analysis.riskAssessment.temperatureRisk * 100).toStringAsFixed(1) + '%'],
-        ['Wind Risk', (analysis.riskAssessment.windRisk * 100).toStringAsFixed(1) + '%'],
-        ['Visibility Risk', (analysis.riskAssessment.visibilityRisk * 100).toStringAsFixed(1) + '%'],
+        ['Overall Risk', '${(analysis.riskAssessment.overallRisk * 100).toStringAsFixed(1)}%'],
+        ['Precipitation Risk', '${(analysis.riskAssessment.precipitationRisk * 100).toStringAsFixed(1)}%'],
+        ['Temperature Risk', '${(analysis.riskAssessment.temperatureRisk * 100).toStringAsFixed(1)}%'],
+        ['Wind Risk', '${(analysis.riskAssessment.windRisk * 100).toStringAsFixed(1)}%'],
+        ['Visibility Risk', '${(analysis.riskAssessment.visibilityRisk * 100).toStringAsFixed(1)}%'],
         [''],
         ['Recommendations'],
-        ...analysis.recommendations.map((rec) => [rec]),
+        ...analysis.recommendations.asMap().entries.map((entry) => ['${entry.key + 1}', entry.value]),
         [''],
         ['Historical Data (Last 10 Years)'],
-        ['Year', 'Temperature (°C)', 'Precipitation (mm)', 'Humidity (%)', 'Wind Speed (km/h)'],
+        ['Year', 'Date', 'Temperature (°C)', 'Precipitation (mm)', 'Humidity (%)', 'Wind Speed (km/h)'],
         ...analysis.historicalData.map((data) => [
           data.date.year.toString(),
+          DateFormat('yyyy-MM-dd').format(data.date),
           data.temperature.toStringAsFixed(1),
           data.precipitation.toStringAsFixed(1),
           data.humidity.toStringAsFixed(1),
           data.windSpeed.toStringAsFixed(1),
         ]),
+        [''],
+        ['Generated by WeatherWise App'],
+        ['Visit our GitHub: https://github.com/more2012/weatherwise'],
       ];
 
       final csvString = const ListToCsvConverter().convert(csvData);
@@ -701,11 +704,26 @@ class _WeatherAnalysisScreenState extends State<WeatherAnalysisScreen>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Data exported to: $filePath'),
-            duration: const Duration(seconds: 5),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  '✅ CSV Export Successful!',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 4),
+                Text('File: $fileName'),
+                Text('Location: Downloads folder'),
+              ],
+            ),
+            duration: const Duration(seconds: 6),
             action: SnackBarAction(
-              label: 'OK',
-              onPressed: () {},
+              label: 'Open Downloads',
+              onPressed: () {
+                // You can add logic here to open file manager
+                // or show the file location
+              },
             ),
           ),
         );
@@ -714,13 +732,32 @@ class _WeatherAnalysisScreenState extends State<WeatherAnalysisScreen>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Export failed: ${e.toString()}'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  '❌ Export Failed',
+                  style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+                ),
+                const SizedBox(height: 4),
+                Text('Error: ${e.toString()}'),
+              ],
+            ),
             backgroundColor: Theme.of(context).colorScheme.error,
+            duration: const Duration(seconds: 5),
+            action: SnackBarAction(
+              label: 'Retry',
+              textColor: Colors.white,
+              onPressed: () => _exportData(),
+            ),
           ),
         );
       }
+      print('CSV Export Error: $e');
     }
   }
+
 
   void _shareAnalysis() {
     ScaffoldMessenger.of(context).showSnackBar(
